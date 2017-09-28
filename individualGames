@@ -19,14 +19,14 @@ passing_gain_prob = []
 outcome = []
 
 # GRAB STATS FOR TEAM ONE AND TEAM TWO
-def grabstats():
+def grabstats(game):
     # PICK THE WEBSITE
     # Bills vs Jets
     #html = requests.get("http://www.espn.com/nfl/matchup?gameId=400791486").text
     # Cowboys vs Broncos
     #html = requests.get("http://www.espn.com/nfl/matchup?gameId=400951673").text
     # Packers vs. Broncos
-    html = requests.get("http://www.espn.com/nfl/matchup?gameId=400951834").text
+    html = requests.get(game).text
     #html = requests.get("http://www.espn.com/nfl/matchup?gameId=400791684").text
     soup = BeautifulSoup(html, 'html5lib')
 
@@ -316,27 +316,41 @@ def write_CSV():
         #F = FIRST DOWN PROB
         #A = passing_prob
         #T = TURNOVER PROB
-        #P = PASSING PROB
+        #P = PASSING GAIN PROB
         #O = OUTCOME
         wr.writerow("FATPO")
-        for i in zip(first_down_prob[-len(first_down_prob):], passing_prob[-len(passing_prob):],
-                     turnover_prob[-len(turnover_prob):],
-                     passing_gain_prob[-len(passing_gain_prob):], outcome[-len(outcome):]):
+        for i in zip(first_down_prob, passing_prob,
+                     turnover_prob,
+                     passing_gain_prob, outcome):
             wr.writerow(i)
-
-if __name__ == "__main__":
-    grabstats()
-    stats = [x.replace('\t', '').replace('\n', '') for x in stats]
-    print(stats)
-    #print(winning_team())
-    #print(t1_rushing())
-    #print(stats[13])
-    #print(p_first_down_t1())
+def append_CSV():
+    with open("data.csv", "a") as f:
+        wr = csv.writer(f)
+        for i in zip(first_down_prob[-2:], passing_prob[-2:], turnover_prob[-2:], passing_gain_prob[-2:], outcome[-2:]):
+            wr.writerow(i)
+            
+def game_1():
     build_up_p_x_given_win_list()
     build_up_p_x_given_loss_list()
-    #print(pOfXsWins)
-    #print(pOfXsLosses)
     training()
     classify()
-    #print(t1_passing())
     write_CSV()
+
+def game_2():
+    build_up_p_x_given_win_list()
+    build_up_p_x_given_loss_list()
+    training()
+    classify()
+    append_CSV()
+
+if __name__ == "__main__":
+    grabstats(game="http://www.espn.com/nfl/matchup?gameId=400951834")
+    stats = [x.replace('\t', '').replace('\n', '') for x in stats]
+    game_1()
+    print(stats)
+    del stats[:]
+    grabstats(game="http://www.espn.com/nfl/matchup?gameId=400951673")
+    stats = [x.replace('\t', '').replace('\n', '') for x in stats]
+    game_2()
+    print(stats)
+    # NOW NEED TO READ FROM CSV FILE TO CREATE THE CLASSIFIER
