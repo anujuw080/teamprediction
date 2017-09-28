@@ -2,7 +2,7 @@ from __future__ import division
 from bs4 import BeautifulSoup
 import requests
 import functools
-
+import csv
 
 # LISTS FOR PROGRAM
 players = []
@@ -11,6 +11,12 @@ pOfXsWins = []
 pOfXsLosses = []
 probs_win = []
 probs_lose = []
+first_down_prob = []
+passing_prob = []
+rushing_gain_prob = []
+turnover_prob = []
+passing_gain_prob = []
+outcome = []
 
 # GRAB STATS FOR TEAM ONE AND TEAM TWO
 def grabstats():
@@ -170,32 +176,52 @@ def t1_prob_of_first_down_from_penalty():
 
 # CHANGE THESE TO THE TOTAL PAST GAMES FROM TAB RESULTS TEAM ONCE YOU GET IT WORKING
 def prob_of_t1_winning():
-    return 0.5
+    if winning_team() == 1:
+        z = 1
+    else:
+        z = 0
+    return (0.5 + z) / 2
 def prob_of_t2_winning():
-    return 0.5
+    if winning_team() == 2:
+        z = 1
+    else:
+        z = 0
+    return (0.5 + z) / 2
 #THIS MAY NEED GAUSSIAN DISTRO BASED OFF OF PAST GAMES * 0.5 PRIOR KNOWLEDGE
 
 # RETURNS WINNING TEAM FOR THAT GAME
 def winning_team():
     if t1_points_total() > t2_points_total():
-        return team1()
+        return 1
     else:
-        return team2()
+        return 2
 
 
 # NEED TO CREATE PROBABILITIES OF AN EVENT HAPPENING
 def p_first_down_t1():
-    return t1_first_downs()/ t1_total_plays()
+    z = t1_first_downs()/ t1_total_plays()
+    first_down_prob.append(z)
+    return z
 def p_first_down_t2():
-    return t2_first_downs() / t2_total_plays()
+    z = t2_first_downs() / t2_total_plays()
+    first_down_prob.append(z)
+    return z
 def p_t1_rushing_gain():
-    return  t1_rushing() / t1_total_yards()
+    z = t1_rushing() / t1_total_yards()
+    rushing_gain_prob.append(z)
+    return z
 def p_t2_rushing_gain():
-    return t2_rushing() / t2_total_yards()
+    z = t2_rushing() / t2_total_yards()
+    rushing_gain_prob.append(z)
+    return z
 def p_t1_passing_gain():
-    return t1_passing() / t1_total_yards()
+    z = t1_passing() / t1_total_yards()
+    passing_gain_prob.append(z)
+    return z
 def p_t2_passing_gain():
-    return t2_passing() / t2_total_yards()
+    z = t2_passing() / t2_total_yards()
+    passing_gain_prob.append(z)
+    return z
 def p_t1_interception():
     z = t2_intercept() / t2_total_plays()
     if  z == 0:
@@ -211,16 +237,22 @@ def p_t1_turnover():
     z = t2_turnovers() / t2_total_plays()
     if z == 0:
         z = 1 / (t2_total_plays() + t1_total_plays())
+    turnover_prob.append(z)
     return z
 def p_t2_turnover():
     z = t1_turnovers() / t1_total_plays()
     if z == 0:
         z = 1 / (t2_total_plays() + t1_total_plays())
+    turnover_prob.append(z)
     return z
 def p_passing_yards_from_t1():
-    return t1_total_yards() / (t1_total_yards() + t2_total_yards())
+    z = t1_passing() / (t1_total_yards() + t2_total_yards())
+    passing_prob.append(z)
+    return z
 def p_passing_yards_from_t2():
-    return t2_total_yards() / (t1_total_yards() + t2_total_yards())
+    z = t2_passing() / (t1_total_yards() + t2_total_yards())
+    passing_prob.append(z)
+    return z
 
 # NEED TO CREATE THE LIST OF PROBABILITIES X OCCURS
 def build_up_p_x_given_win_list():
@@ -231,7 +263,12 @@ def build_up_p_x_given_win_list():
     pOfXsWins.append((p_t1_passing_gain() * z) / z)
     pOfXsWins.append((p_t1_turnover() * z))
     pOfXsWins.append((p_passing_yards_from_t1() * z) / z)
+    if winning_team() == 1:
+        outcome.append(1)
+    else:
+        outcome.append(0)
     return
+
 def build_up_p_x_given_loss_list():
     # NEED TO FILL IN THE PROBABILITY OF X OCCURING GIVEN A LOSS
     #LIST = (P(X)*P(Y))/P(Y)
@@ -241,6 +278,10 @@ def build_up_p_x_given_loss_list():
     pOfXsLosses.append((p_t2_passing_gain() * z) / z)
     pOfXsLosses.append((p_t2_turnover() * z) / z)
     pOfXsLosses.append((p_passing_yards_from_t2() * z) / z)
+    if winning_team() == 2:
+        outcome.append(1)
+    else:
+        outcome.append(0)
     return
 
 # FOR EACH X ATTR NEED TO FIND X | Y
@@ -269,6 +310,19 @@ def classify():
         print("TEAM 2 is going to win!")
 
 #TO FIND MAX PROBABILITY OF X | Y
+def write_CSV():
+    with open("data.csv", "w") as e:
+        wr = csv.writer(e)
+        #F = FIRST DOWN PROB
+        #A = passing_prob
+        #T = TURNOVER PROB
+        #P = PASSING PROB
+        #O = OUTCOME
+        wr.writerow("FATPO")
+        for i in zip(first_down_prob[-len(first_down_prob):], passing_prob[-len(passing_prob):],
+                     turnover_prob[-len(turnover_prob):],
+                     passing_gain_prob[-len(passing_gain_prob):], outcome[-len(outcome):]):
+            wr.writerow(i)
 
 if __name__ == "__main__":
     grabstats()
@@ -285,5 +339,4 @@ if __name__ == "__main__":
     training()
     classify()
     #print(t1_passing())
-    
-    '''Need to put into csv file for all past games to get P(Y)'''
+    write_CSV()
